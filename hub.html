@@ -4028,15 +4028,22 @@
         const btn   = document.getElementById('loginBtn');
         if (!nome || !senha) { errEl.textContent = 'Preencha nome e senha.'; errEl.style.display='block'; return; }
         btn.textContent = 'Entrando...'; btn.disabled = true;
+        if (!db) {
+            errEl.textContent = 'Sem conexão com o banco. Recarregue a página.'; errEl.style.display='block';
+            btn.textContent = 'Entrar →'; btn.disabled = false; return;
+        }
         try {
-            const senhaHash = await hashSenha(senha);
-            // Tenta primeiro com hash (coluna senha_hash), depois fallback para texto puro (coluna senha legada)
             let row = null;
-            const { data: dHash } = await db.from('acessos').select('id, nome, papel').eq('nome', nome).eq('senha_hash', senhaHash).limit(1).catch(() => ({ data: null }));
-            if (dHash?.[0]) { row = dHash[0]; }
-            else {
-                const { data: dPlain } = await db.from('acessos').select('id, nome, papel').eq('nome', nome).eq('senha', senha).limit(1).catch(() => ({ data: null }));
-                row = dPlain?.[0] || null;
+            // Tenta login com senha hasheada (após migração)
+            try {
+                const senhaHash = await hashSenha(senha);
+                const { data: dHash, error: eHash } = await db.from('acessos').select('id, nome, papel').eq('nome', nome).eq('senha_hash', senhaHash).limit(1);
+                if (!eHash && dHash?.[0]) row = dHash[0];
+            } catch(_) {}
+            // Fallback: senha em texto puro (antes da migração)
+            if (!row) {
+                const { data: dPlain, error: ePlain } = await db.from('acessos').select('id, nome, papel').eq('nome', nome).eq('senha', senha).limit(1);
+                if (!ePlain && dPlain?.[0]) row = dPlain[0];
             }
             if (!row) {
                 errEl.textContent = 'Nome ou senha incorretos.'; errEl.style.display='block';
@@ -4045,7 +4052,7 @@
             localStorage.setItem('hubSession', JSON.stringify({ id: row.id, nome: row.nome, papel: row.papel }));
             location.reload();
         } catch(e) {
-            errEl.textContent = 'Erro de conexão. Verifique sua internet.'; errEl.style.display='block';
+            errEl.textContent = 'Erro: ' + (e?.message || 'verifique sua internet.'); errEl.style.display='block';
             btn.textContent = 'Entrar →'; btn.disabled = false;
         }
     }

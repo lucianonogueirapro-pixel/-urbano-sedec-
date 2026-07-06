@@ -1,6 +1,6 @@
-const CACHE = 'hub-vitoria-v7';
-const ASSETS = [
-  './hub.html',
+const CACHE = 'hub-vitoria-v8';
+const HTML  = './hub.html';
+const STATIC = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
@@ -12,30 +12,44 @@ const ASSETS = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(c => c.addAll([HTML, ...STATIC]))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
-  // Não cacheia chamadas para APIs externas (Anthropic, Supabase)
   const url = e.request.url;
-  if (url.includes('api.anthropic.com') || url.includes('supabase.co')) {
+
+  // APIs externas: sem interceptação
+  if (url.includes('api.anthropic.com') || url.includes('supabase.co')) return;
+
+  // hub.html: network-first — sempre busca versão atual; cache só como fallback offline
+  if (e.request.destination === 'document' || url.endsWith('hub.html') || url.includes('hub.html?')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(HTML, clone));
+          return res;
+        })
+        .catch(() => caches.match(HTML))
+    );
     return;
   }
+
+  // Demais assets: cache-first
   e.respondWith(
     caches.match(e.request).then(cached =>
-      cached || fetch(e.request).catch(() => {
-        if (e.request.destination === 'document')
-          return caches.match('./hub.html');
-      })
+      cached || fetch(e.request).catch(() => {})
     )
   );
 });

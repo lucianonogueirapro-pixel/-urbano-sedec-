@@ -2033,13 +2033,16 @@
         padding: max(52px, env(safe-area-inset-top) + 12px) 20px 0;
     }
     .nl-hub-btn {
-        background: none;
+        background: #007aff;
         border: none;
-        color: #007aff;
-        font-size: 16px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
-        font-family: inherit;
-        padding: 4px 0;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        padding: 7px 16px;
+        border-radius: 20px;
+        letter-spacing: .01em;
     }
     .nl-header {
         padding: 6px 20px 10px;
@@ -2147,12 +2150,16 @@
     }
     .ne-topbar-right { margin-left: auto; }
     .ne-hub-btn {
-        background: none;
+        background: #007aff;
         border: none;
-        color: #007aff;
-        font-size: 15px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
-        font-family: inherit;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        padding: 7px 16px;
+        border-radius: 20px;
+        letter-spacing: .01em;
     }
     .ne-scroll {
         flex: 1;
@@ -7943,9 +7950,8 @@ Responda SOMENTE com um array JSON, sem texto antes ou depois, sem markdown, exa
     (async function initNotasComSync() {
         await loadNotasFromSupabase(); /* sincroniza conteúdo do servidor */
         initNotepad();
-        try {
-            if (localStorage.getItem('hubLastView') === 'notepad') openNotepad();
-        } catch(e) {}
+        // sempre inicia no hub; Notas só abre quando o usuário navegar lá
+        try { localStorage.removeItem('hubLastView'); } catch(e) {}
     })();
 
     /* ═══════════════════════════════════════════

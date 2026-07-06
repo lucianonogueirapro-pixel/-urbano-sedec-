@@ -9682,8 +9682,8 @@ ${FORMAT_INST}`;
 #tourTitle{font-family:'Orbitron',monospace;font-size:12.5px;font-weight:700;color:#E8F0F8;margin-bottom:10px;letter-spacing:.03em;line-height:1.35}
 #tourDesc{font-family:'Inter',sans-serif;font-size:12px;color:#7A9AB8;line-height:1.7;margin-bottom:18px}
 .tour-btns{display:flex;gap:8px;align-items:center}
-#tourSkip{background:none;border:none;color:#4A6A8A;font-size:10.5px;cursor:pointer;padding:4px 0;flex:1;font-family:'Inter',sans-serif;text-align:left}
-#tourSkip:hover{color:#7A9AB8}
+#tourSkip{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#C0D0E0;font-size:10.5px;cursor:pointer;padding:6px 12px;border-radius:5px;flex:1;font-family:'Inter',sans-serif;text-align:center}
+#tourSkip:hover{background:rgba(255,255,255,.14);color:#fff}
 #tourPrev{background:none;border:1px solid rgba(0,168,122,.25);color:#4A8A6A;font-size:10.5px;cursor:pointer;padding:7px 14px;border-radius:6px;font-family:'Inter',sans-serif;font-weight:500}
 #tourPrev:hover{border-color:rgba(0,168,122,.6);color:#00A87A}
 #tourNext{background:#00A87A;border:none;color:#fff;font-size:10px;font-weight:700;cursor:pointer;padding:8px 16px;border-radius:6px;font-family:'Orbitron',monospace;letter-spacing:.08em;text-transform:uppercase;transition:background .15s;white-space:nowrap}
@@ -9839,16 +9839,17 @@ ${FORMAT_INST}`;
     }
 
     function posPanel(panel, el) {
-        const vw = window.innerWidth, vh = window.innerHeight, pw = 316, ph = 220;
+        const vw = window.innerWidth, vh = window.innerHeight, pw = 320, ph = 240;
+        panel.style.transform = '';
         if (!el) {
-            panel.style.cssText += ';top:50%;left:50%;transform:translate(-50%,-50%)';
+            panel.style.top       = Math.round((vh - ph) / 2) + 'px';
+            panel.style.left      = Math.round((vw - pw) / 2) + 'px';
             return;
         }
-        panel.style.transform = 'none';
         const r = el.getBoundingClientRect();
-        let t = r.bottom + 16, l = r.left;
-        if (t + ph > vh - 16) t = Math.max(16, r.top - ph - 16);
-        if (l + pw > vw - 16) l = Math.max(16, vw - pw - 16);
+        let t = r.bottom + 14, l = r.left;
+        if (t + ph > vh - 8) t = Math.max(8, r.top - ph - 14);
+        if (l + pw > vw - 8) l = Math.max(8, vw - pw - 8);
         panel.style.top  = Math.max(8, t) + 'px';
         panel.style.left = Math.max(8, l) + 'px';
     }
@@ -9858,6 +9859,7 @@ ${FORMAT_INST}`;
         const ov   = document.getElementById('tourOverlay');
         const spot = document.getElementById('tourSpot');
         const pan  = document.getElementById('tourPanel');
+        if (!ov || !pan) return;
 
         document.getElementById('tourStep').textContent = (idx + 1) + ' / ' + TOUR.length;
         document.getElementById('tourTitle').textContent = step.titulo;
@@ -9885,9 +9887,19 @@ ${FORMAT_INST}`;
     window.nextTour = function() { if (idx >= TOUR.length - 1) skipTour(); else { idx++; render(); } };
     window.prevTour = function() { if (idx > 0) { idx--; render(); } };
     window.skipTour = function() {
-        document.getElementById('tourOverlay').classList.remove('active');
+        const ov = document.getElementById('tourOverlay');
+        if (ov) ov.classList.remove('active');
         try { localStorage.setItem('urbano_tour_done', '1'); } catch(e) {}
     };
+
+    // clicar no escuro (fora do painel) fecha o tour
+    document.addEventListener('click', function(e) {
+        const pan = document.getElementById('tourPanel');
+        const ov  = document.getElementById('tourOverlay');
+        if (ov && ov.classList.contains('active') && pan && !pan.contains(e.target)) {
+            skipTour();
+        }
+    });
 
     /* PWA */
     function buildPwaSteps() {

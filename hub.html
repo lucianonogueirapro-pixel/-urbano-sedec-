@@ -2746,6 +2746,8 @@
         <div class="header-divider"></div>
         <button onclick="openApiKey()" title="Configurar chave de API" class="hdr-btn" onmouseover="this.classList.add('hdr-btn-hover')" onmouseout="this.classList.remove('hdr-btn-hover')">API</button>
         <div class="header-divider"></div>
+        <button id="costPill" onclick="openCostDetail()" title="Consumo estimado da API Anthropic neste dispositivo" style="display:none;background:none;border:1px solid rgba(244,185,66,.3);border-radius:4px;color:#B08020;font-family:'Orbitron',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;padding:3px 7px;cursor:pointer;white-space:nowrap;transition:all .15s" onmouseover="this.style.borderColor='rgba(244,185,66,.7)';this.style.color='#D4A030'" onmouseout="this.style.borderColor='rgba(244,185,66,.3)';this.style.color='#B08020'">US$ 0.00</button>
+        <div class="header-divider" id="costDivider" style="display:none"></div>
         <div id="userBadge" style="display:none;align-items:center;gap:7px;padding:0 4px">
             <div id="userBadgeDot" style="width:7px;height:7px;border-radius:50%;background:#007A5A;flex-shrink:0"></div>
             <span id="userBadgeName" style="font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#1A3050;text-transform:uppercase;white-space:nowrap"></span>
@@ -4041,7 +4043,7 @@
         }
         try {
             const { data, error } = await db.from('acessos')
-                .select('id, nome, papel, senha_hash, senha')
+                .select('id, nome, papel, senha_hash, senha, api_key')
                 .eq('nome', nome)
                 .limit(1);
             if (error) throw error;
@@ -4051,6 +4053,8 @@
                 const ok = (user.senha_hash && user.senha_hash === senhaHash) || (!user.senha_hash && user.senha === senha);
                 if (ok) {
                     localStorage.setItem('hubSession', JSON.stringify({ id: user.id, nome: user.nome, papel: user.papel }));
+                    // carrega chave de API do banco se configurada para esta conta
+                    if (user.api_key) localStorage.setItem('claudeApiKey', user.api_key);
                     location.reload();
                     return;
                 }
@@ -5485,6 +5489,7 @@ Responda com precisão jurídica, cite artigos de lei quando relevante, indique 
             }
 
             const data  = await res.json();
+            try { if (data.usage) window.trackApiUsage(data.usage.input_tokens, data.usage.output_tokens); } catch(e) {}
             const reply = data.content[0].text;
             chatHistory.push({ role: 'user', content: prompt });
             chatHistory.push({ role: 'assistant', content: reply });
@@ -5706,6 +5711,7 @@ Responda sempre em português, de forma direta e técnica. Cite base legal quand
         const decoder = new TextDecoder();
         let full = '';
         let buf = '';
+        let usageIn = 0, usageOut = 0;
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -5718,6 +5724,8 @@ Responda sempre em português, de forma direta e técnica. Cite base legal quand
                 if (json === '[DONE]') continue;
                 try {
                     const evt = JSON.parse(json);
+                    if (evt.type === 'message_start' && evt.message?.usage) usageIn = evt.message.usage.input_tokens || 0;
+                    if (evt.type === 'message_delta' && evt.usage) usageOut = evt.usage.output_tokens || 0;
                     const delta = evt.delta?.text || '';
                     if (delta) {
                         full += delta;
@@ -5726,6 +5734,7 @@ Responda sempre em português, de forma direta e técnica. Cite base legal quand
                 } catch(e) {}
             }
         }
+        if (usageIn || usageOut) try { window.trackApiUsage(usageIn, usageOut); } catch(e) {}
         if (onDone) onDone(full);
         return full;
     }
@@ -8821,6 +8830,7 @@ Retorne SOMENTE JSON válido, sem texto antes ou depois:
             });
             lastRes = res;
             const data = await res.json();
+            try { if (data.usage) window.trackApiUsage(data.usage.input_tokens, data.usage.output_tokens); } catch(e) {}
             const raw  = data.content?.[0]?.text || '';
             const m    = raw.match(/\{[\s\S]*\}/);
             if (!m) throw new Error('json');
@@ -8954,6 +8964,7 @@ Inclua apenas fontes com compatibilidade acima de 35. Ordene por compatibilidade
             });
             lastRes = res;
             const data = await res.json();
+            try { if (data.usage) window.trackApiUsage(data.usage.input_tokens, data.usage.output_tokens); } catch(e) {}
             const raw  = data.content?.[0]?.text || '';
             const m    = raw.match(/\{[\s\S]*\}/);
             if (!m) throw new Error('json');
@@ -9548,6 +9559,311 @@ ${FORMAT_INST}`;
     });
 
     tip.style.display = 'none';
+})();
+</script>
+
+<!-- ══════════════════════════════════════════
+     TOUR + PWA + COST TRACKER
+══════════════════════════════════════════ -->
+<style>
+/* ── TOUR ── */
+#tourOverlay{position:fixed;inset:0;z-index:99980;pointer-events:none;opacity:0;transition:opacity .3s}
+#tourOverlay.active{pointer-events:all;opacity:1}
+#tourDark{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:99981;pointer-events:all;transition:background .35s}
+#tourOverlay.active #tourDark{background:rgba(0,0,0,.76)}
+#tourSpot{position:fixed;z-index:99982;pointer-events:none;border-radius:8px;transition:all .35s cubic-bezier(.4,0,.2,1);outline:2.5px solid #00A87A;outline-offset:5px;background:transparent}
+#tourPanel{position:fixed;z-index:99986;background:linear-gradient(135deg,#0A1A2A,#0D2035);border:1px solid rgba(0,168,122,.4);border-radius:14px;padding:22px 24px 18px;width:300px;box-shadow:0 20px 56px rgba(0,0,0,.75);transition:all .3s cubic-bezier(.4,0,.2,1)}
+#tourStep{font-family:'Orbitron',monospace;font-size:8.5px;font-weight:700;letter-spacing:.18em;color:#00A87A;text-transform:uppercase;margin-bottom:10px}
+#tourTitle{font-family:'Orbitron',monospace;font-size:12.5px;font-weight:700;color:#E8F0F8;margin-bottom:10px;letter-spacing:.03em;line-height:1.35}
+#tourDesc{font-family:'Inter',sans-serif;font-size:12px;color:#7A9AB8;line-height:1.7;margin-bottom:18px}
+.tour-btns{display:flex;gap:8px;align-items:center}
+#tourSkip{background:none;border:none;color:#4A6A8A;font-size:10.5px;cursor:pointer;padding:4px 0;flex:1;font-family:'Inter',sans-serif;text-align:left}
+#tourSkip:hover{color:#7A9AB8}
+#tourPrev{background:none;border:1px solid rgba(0,168,122,.25);color:#4A8A6A;font-size:10.5px;cursor:pointer;padding:7px 14px;border-radius:6px;font-family:'Inter',sans-serif;font-weight:500}
+#tourPrev:hover{border-color:rgba(0,168,122,.6);color:#00A87A}
+#tourNext{background:#00A87A;border:none;color:#fff;font-size:10px;font-weight:700;cursor:pointer;padding:8px 16px;border-radius:6px;font-family:'Orbitron',monospace;letter-spacing:.08em;text-transform:uppercase;transition:background .15s;white-space:nowrap}
+#tourNext:hover{background:#00C490}
+/* ── PWA MODAL ── */
+#pwaModal{position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:20px}
+#pwaModal.open{display:flex}
+#pwaBox{background:linear-gradient(135deg,#0A1A2A,#0D2035);border:1px solid rgba(0,168,122,.35);border-radius:18px;padding:32px 24px 24px;width:100%;max-width:350px;box-shadow:0 24px 64px rgba(0,0,0,.75);text-align:center}
+.pwa-emoji{font-size:42px;margin-bottom:14px}
+.pwa-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#E8F0F8;margin-bottom:8px;letter-spacing:.06em}
+.pwa-sub{font-family:'Inter',sans-serif;font-size:11.5px;color:#7A9AB8;line-height:1.65;margin-bottom:18px}
+.pwa-steps{text-align:left;background:rgba(0,168,122,.07);border-radius:10px;padding:14px 16px;margin-bottom:20px}
+.pwa-steps p{font-family:'Inter',sans-serif;font-size:11px;color:#7A9AB8;margin:0 0 7px;line-height:1.5}
+.pwa-steps p:last-child{margin:0}
+.pwa-steps strong{color:#00C490}
+.pwa-cta{background:#00A87A;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-family:'Orbitron',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;cursor:pointer;width:100%;margin-bottom:10px;transition:background .15s}
+.pwa-cta:hover{background:#00C490}
+.pwa-skip-btn{background:none;border:none;color:#4A6A8A;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;padding:4px 0}
+.pwa-skip-btn:hover{color:#7A9AB8}
+/* ── COST MODAL ── */
+#costModal{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px}
+#costModal.open{display:flex}
+#costBox{background:#fff;border-radius:14px;padding:24px;width:100%;max-width:360px;box-shadow:0 16px 48px rgba(0,0,0,.3)}
+.cost-title{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:#1A3050;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #EEF2F8;font-family:'Inter',sans-serif;font-size:12px;color:#3A5070}
+.cost-row:last-of-type{border-bottom:none}
+.cost-val{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;color:#1A3050}
+.cost-alert-row{background:#FFF8E1;border-radius:8px;padding:12px;margin:14px 0;font-family:'Inter',sans-serif;font-size:11px;color:#7A5A00}
+.cost-alert-row label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.cost-inp{border:1px solid #C8D8EC;border-radius:6px;padding:5px 8px;font-size:12px;width:80px;font-family:'Orbitron',monospace;color:#1A3050;outline:none}
+.cost-reset-btn{background:#F0F4F8;border:1px solid #C8D8EC;border-radius:6px;color:#4A6080;font-size:11px;cursor:pointer;padding:8px 14px;font-family:'Inter',sans-serif;margin-right:8px}
+.cost-close-btn{background:#007A5A;border:none;border-radius:6px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;padding:8px 18px;font-family:'Inter',sans-serif}
+</style>
+
+<!-- TOUR OVERLAY -->
+<div id="tourOverlay">
+    <div id="tourDark"></div>
+    <div id="tourSpot"></div>
+    <div id="tourPanel">
+        <div id="tourStep"></div>
+        <div id="tourTitle"></div>
+        <div id="tourDesc"></div>
+        <div class="tour-btns">
+            <button id="tourSkip" onclick="skipTour()">Pular tour</button>
+            <button id="tourPrev" onclick="prevTour()">← Voltar</button>
+            <button id="tourNext" onclick="nextTour()">Próximo →</button>
+        </div>
+    </div>
+</div>
+
+<!-- PWA INSTALL MODAL -->
+<div id="pwaModal">
+    <div id="pwaBox">
+        <div class="pwa-emoji">📲</div>
+        <div class="pwa-title">Instale o Urbano</div>
+        <div class="pwa-sub">Adicione à tela inicial para acesso rápido e funcionamento offline.</div>
+        <div class="pwa-steps" id="pwaSteps"></div>
+        <button class="pwa-cta" onclick="closePwaAndStartTour()">Entendido — Iniciar Tour ›</button>
+        <br><button class="pwa-skip-btn" onclick="closePwaAndStartTour()">Pular instalação</button>
+    </div>
+</div>
+
+<!-- COST DETAIL MODAL -->
+<div id="costModal" onclick="if(event.target===this)closeCostDetail()">
+    <div id="costBox">
+        <div class="cost-title">Consumo API — Anthropic</div>
+        <div class="cost-row"><span>Tokens de entrada</span><span class="cost-val" id="cdIn">0</span></div>
+        <div class="cost-row"><span>Tokens de saída</span><span class="cost-val" id="cdOut">0</span></div>
+        <div class="cost-row"><span>Requisições</span><span class="cost-val" id="cdReqs">0</span></div>
+        <div class="cost-row"><span>Custo estimado</span><span class="cost-val" id="cdTotal" style="color:#007A5A">US$ 0.00</span></div>
+        <div class="cost-alert-row">
+            <label>
+                <input type="checkbox" id="cdAlertOn" onchange="saveCostSettings()"> Alertar quando custo atingir
+                <input class="cost-inp" id="cdAlertVal" type="number" min="0.01" step="0.01" value="1.00" placeholder="1.00" oninput="saveCostSettings()"> US$
+            </label>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px">
+            <button class="cost-reset-btn" onclick="resetCost()">Zerar</button>
+            <button class="cost-close-btn" onclick="closeCostDetail()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   COST TRACKER
+══════════════════════════════════════════ */
+(function() {
+    const KEY = 'urbano_cost_v1';
+    const PRICE = { 'claude-opus-4-7': { inp: 3/1e6, out: 15/1e6 }, 'claude-sonnet-4-6': { inp: 0.3/1e6, out: 1.5/1e6 } };
+
+    function loadCost() {
+        try { return JSON.parse(localStorage.getItem(KEY)) || { inp: 0, out: 0, reqs: 0 }; } catch(e) { return { inp: 0, out: 0, reqs: 0 }; }
+    }
+    function saveCost(d) { try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e) {} }
+
+    function calcUSD(d) {
+        // aproximação: maior parte do consumo é opus-4-7
+        return d.inp * PRICE['claude-opus-4-7'].inp + d.out * PRICE['claude-opus-4-7'].out;
+    }
+
+    function updatePill(d) {
+        const pill = document.getElementById('costPill');
+        const div  = document.getElementById('costDivider');
+        if (!pill) return;
+        const usd = calcUSD(d);
+        pill.textContent = 'US$ ' + usd.toFixed(2);
+        pill.style.display = 'block';
+        if (div) div.style.display = 'block';
+
+        // alertas
+        try {
+            const settings = JSON.parse(localStorage.getItem('urbano_cost_settings') || '{}');
+            if (settings.alertOn && settings.alertVal > 0 && usd >= settings.alertVal) {
+                const alerted = parseFloat(localStorage.getItem('urbano_cost_alerted') || '0');
+                if (usd >= alerted + settings.alertVal) {
+                    localStorage.setItem('urbano_cost_alerted', String(usd));
+                    if (typeof pushNotif === 'function')
+                        pushNotif('CONSUMO API', 'Custo atingiu US$ ' + usd.toFixed(2) + '. Recarregue seus créditos.', '#F4B942');
+                }
+            }
+        } catch(e) {}
+    }
+
+    window.trackApiUsage = function(inputTokens, outputTokens) {
+        if (!inputTokens && !outputTokens) return;
+        const d = loadCost();
+        d.inp  += (inputTokens  || 0);
+        d.out  += (outputTokens || 0);
+        d.reqs += 1;
+        saveCost(d);
+        updatePill(d);
+    };
+
+    window.openCostDetail = function() {
+        const d = loadCost();
+        const usd = calcUSD(d);
+        document.getElementById('cdIn').textContent    = d.inp.toLocaleString('pt-BR');
+        document.getElementById('cdOut').textContent   = d.out.toLocaleString('pt-BR');
+        document.getElementById('cdReqs').textContent  = d.reqs.toLocaleString('pt-BR');
+        document.getElementById('cdTotal').textContent = 'US$ ' + usd.toFixed(4);
+        try {
+            const s = JSON.parse(localStorage.getItem('urbano_cost_settings') || '{}');
+            document.getElementById('cdAlertOn').checked  = !!s.alertOn;
+            document.getElementById('cdAlertVal').value   = s.alertVal || 1;
+        } catch(e) {}
+        document.getElementById('costModal').classList.add('open');
+    };
+
+    window.closeCostDetail = function() {
+        document.getElementById('costModal').classList.remove('open');
+    };
+
+    window.saveCostSettings = function() {
+        const s = {
+            alertOn:  document.getElementById('cdAlertOn').checked,
+            alertVal: parseFloat(document.getElementById('cdAlertVal').value) || 1,
+        };
+        try { localStorage.setItem('urbano_cost_settings', JSON.stringify(s)); } catch(e) {}
+    };
+
+    window.resetCost = function() {
+        localStorage.removeItem(KEY);
+        localStorage.removeItem('urbano_cost_alerted');
+        updatePill({ inp: 0, out: 0, reqs: 0 });
+        document.getElementById('cdIn').textContent = '0';
+        document.getElementById('cdOut').textContent = '0';
+        document.getElementById('cdReqs').textContent = '0';
+        document.getElementById('cdTotal').textContent = 'US$ 0.0000';
+    };
+
+    // inicia pill ao carregar
+    window.addEventListener('DOMContentLoaded', () => updatePill(loadCost()));
+    setTimeout(() => updatePill(loadCost()), 1500);
+})();
+
+/* ══════════════════════════════════════════
+   TOUR
+══════════════════════════════════════════ */
+(function() {
+    const TOUR = [
+        { titulo: 'Bem-vindo ao Urbano', desc: 'Sistema de gestão estratégica da SEDEC — Secretaria de Desenvolvimento da Cidade e Habitação de Vitória/ES. Este tour rápido mostra as principais funções.', target: null },
+        { titulo: 'Eixos Estratégicos — Vitória 2030', desc: 'Os 8 eixos do plano estratégico organizam toda a atuação da secretaria. Clique em qualquer eixo para ver prioridades, metas e acessar o Kanban de projetos daquele eixo.', target: () => document.querySelector('.card') },
+        { titulo: 'Hub Central — Escritório de Inteligência', desc: 'O núcleo do sistema. Clique no círculo URBANO para acessar 6 Agentes de IA especializados: Estrategista, Jurídico, Analista de Dados, Monitor de Mídia, Tendências Globais e Políticas Públicas.', target: () => document.querySelector('.core') },
+        { titulo: 'Agendas', desc: 'Calendários do Secretário e do Gerente de Projetos. Clique para visualizar, adicionar e acompanhar compromissos e reuniões.', target: () => document.querySelector('[onclick*="openAgenda"]') },
+        { titulo: 'Ferramentas Executivas', desc: 'Todos os módulos em um painel: Kanban, Gantt, Mapa, Audiências, D.O., Financiamento, Relatório IA, Conselho IA, Nota Técnica, Canvas e Comunicação.', target: () => document.querySelector('.tool-panel') },
+        { titulo: 'Visão Geral e Kanban', desc: 'Visão Geral consolida todos os eixos em uma tela. Cada eixo tem Kanban com colunas Backlog, Em Andamento, Revisão e Concluído. Arraste cartões para mudar o status.', target: () => findBtn('Visão Geral') },
+        { titulo: 'Gantt — Linha do Tempo', desc: 'Visualize todos os projetos dos 8 eixos em uma linha do tempo cronológica. Identifique sobreposições, prazos críticos e o progresso geral da secretaria.', target: () => findBtn('Gantt') },
+        { titulo: 'Mapa Estratégico', desc: 'Mapa de Vitória com os territórios de cada eixo. Adicione marcadores georreferenciados a projetos e audiências públicas para visualização espacial.', target: () => findBtn('Mapa') },
+        { titulo: 'Audiências Públicas', desc: 'Gerencie o calendário de audiências. Registre pauta, participantes e atas. A IA pode gravar a reunião, transcrever o áudio e gerar o resumo automaticamente.', target: () => findBtn('Audiências') },
+        { titulo: 'Monitor de Financiamento', desc: 'Descreva um projeto e a IA analisa compatibilidade com 15 fontes (PAC, BID, BNDES, Banco Mundial, CAF, AFD...) e gera ranking com próximos passos concretos.', target: () => findBtn('Financiamento') },
+        { titulo: 'Diário Oficial', desc: 'Pesquise publicações no DOM Vitória, DOE Espírito Santo, LexML e DOU. Cole o texto de uma publicação e a IA analisa o impacto para a SEDEC com ações recomendadas.', target: () => findBtn('D.O.') },
+        { titulo: 'Bloco de Notas', desc: 'Notas sincronizadas com o servidor. Capture ideias e decisões. A IA classifica a nota nos eixos estratégicos e permite enviar diretamente para o Kanban de um eixo.', target: () => document.getElementById('noteBackBtn') },
+        { titulo: 'Chave de API — Configuração', desc: 'Para usar as funções de IA, clique em "API" no cabeçalho e configure sua chave Anthropic. A chave fica salva apenas neste dispositivo.', target: () => document.querySelector('.hdr-btn[onclick*="openApiKey"]') },
+        { titulo: 'US$ — Monitor de Consumo', desc: 'Este indicador mostra o custo estimado das requisições de IA feitas neste dispositivo. Clique nele para ver detalhes e configurar alertas de limite de gasto.', target: () => document.getElementById('costPill') },
+        { titulo: 'Pronto! Bem-vindo ao Urbano.', desc: 'Você conheceu todas as funções principais. Para repetir este tour, limpe o cache do navegador ou peça ao administrador. Em caso de dúvidas, use o Chat IA dentro de qualquer eixo estratégico.', target: null },
+    ];
+
+    let idx = 0;
+
+    function findBtn(text) {
+        return Array.from(document.querySelectorAll('.tool-btn')).find(b => b.textContent.trim() === text) || null;
+    }
+
+    function posPanel(panel, el) {
+        const vw = window.innerWidth, vh = window.innerHeight, pw = 316, ph = 220;
+        if (!el) {
+            panel.style.cssText += ';top:50%;left:50%;transform:translate(-50%,-50%)';
+            return;
+        }
+        panel.style.transform = 'none';
+        const r = el.getBoundingClientRect();
+        let t = r.bottom + 16, l = r.left;
+        if (t + ph > vh - 16) t = Math.max(16, r.top - ph - 16);
+        if (l + pw > vw - 16) l = Math.max(16, vw - pw - 16);
+        panel.style.top  = Math.max(8, t) + 'px';
+        panel.style.left = Math.max(8, l) + 'px';
+    }
+
+    function render() {
+        const step = TOUR[idx];
+        const ov   = document.getElementById('tourOverlay');
+        const spot = document.getElementById('tourSpot');
+        const pan  = document.getElementById('tourPanel');
+
+        document.getElementById('tourStep').textContent = (idx + 1) + ' / ' + TOUR.length;
+        document.getElementById('tourTitle').textContent = step.titulo;
+        document.getElementById('tourDesc').textContent  = step.desc;
+        document.getElementById('tourPrev').style.display = idx === 0 ? 'none' : '';
+        document.getElementById('tourNext').textContent   = idx === TOUR.length - 1 ? 'Concluir ✓' : 'Próximo →';
+
+        ov.classList.add('active');
+
+        const el = step.target ? step.target() : null;
+        if (el) {
+            const r = el.getBoundingClientRect(), p = 7;
+            spot.style.display = 'block';
+            spot.style.top    = (r.top  - p) + 'px';
+            spot.style.left   = (r.left - p) + 'px';
+            spot.style.width  = (r.width  + p * 2) + 'px';
+            spot.style.height = (r.height + p * 2) + 'px';
+            posPanel(pan, el);
+        } else {
+            spot.style.display = 'none';
+            posPanel(pan, null);
+        }
+    }
+
+    window.nextTour = function() { if (idx >= TOUR.length - 1) skipTour(); else { idx++; render(); } };
+    window.prevTour = function() { if (idx > 0) { idx--; render(); } };
+    window.skipTour = function() {
+        document.getElementById('tourOverlay').classList.remove('active');
+        try { localStorage.setItem('urbano_tour_done', '1'); } catch(e) {}
+    };
+
+    /* PWA */
+    function buildPwaSteps() {
+        const el = document.getElementById('pwaSteps');
+        if (!el) return;
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+            el.innerHTML = '<p><strong>iPhone/iPad (Safari):</strong></p><p>1. Toque em <strong>Compartilhar ↑</strong> na barra inferior</p><p>2. Role e toque em <strong>"Adicionar à Tela de Início"</strong></p><p>3. Toque em <strong>Adicionar</strong> para confirmar</p>';
+        } else {
+            el.innerHTML = '<p><strong>Android (Chrome):</strong></p><p>1. Toque nos <strong>3 pontos ⋮</strong> no canto superior direito</p><p>2. Toque em <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong></p><p>3. Toque em <strong>Instalar</strong> para confirmar</p>';
+        }
+    }
+
+    window.closePwaAndStartTour = function() {
+        document.getElementById('pwaModal').classList.remove('open');
+        idx = 0; render();
+    };
+
+    function init() {
+        if (localStorage.getItem('urbano_tour_done')) return;
+        if (!window.ACESSO_ID) return;
+        buildPwaSteps();
+        const mob = /Android|iPhone|iPad|iPod/.test(navigator.userAgent);
+        const sa  = window.matchMedia('(display-mode:standalone)').matches || window.navigator.standalone === true;
+        if (mob && !sa) {
+            document.getElementById('pwaModal').classList.add('open');
+        } else {
+            idx = 0; render();
+        }
+    }
+
+    setTimeout(init, 2000);
 })();
 </script>
 

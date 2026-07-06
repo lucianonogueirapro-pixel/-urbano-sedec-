@@ -2739,15 +2739,12 @@
     </div>
 
     <div class="header-user">
-        <button id="notifBtn" onclick="toggleNotifPanel()" title="Notificações" class="hdr-btn" style="position:relative" onmouseover="this.classList.add('hdr-btn-hover')" onmouseout="this.classList.remove('hdr-btn-hover')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span id="notifBadge" style="display:none;position:absolute;top:-3px;right:-3px;background:#E05C5C;color:#fff;border-radius:50%;min-width:14px;height:14px;font-size:8px;font-weight:700;line-height:14px;text-align:center;padding:0 2px"></span>
+        <button id="configBtn" onclick="toggleConfigPanel()" title="Configurações — Notificações, Consumo da API e Chave" class="hdr-btn" style="position:relative;display:flex;align-items:center;gap:5px" onmouseover="this.classList.add('hdr-btn-hover')" onmouseout="this.classList.remove('hdr-btn-hover')">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Config
+            <span id="configBadge" style="display:none;position:absolute;top:-3px;right:-3px;background:#E05C5C;color:#fff;border-radius:50%;min-width:14px;height:14px;font-size:8px;font-weight:700;line-height:14px;text-align:center;padding:0 2px"></span>
         </button>
         <div class="header-divider"></div>
-        <button onclick="openApiKey()" title="Configurar chave de API" class="hdr-btn" onmouseover="this.classList.add('hdr-btn-hover')" onmouseout="this.classList.remove('hdr-btn-hover')">API</button>
-        <div class="header-divider"></div>
-        <button id="costPill" onclick="openCostDetail()" title="Consumo estimado da API Anthropic neste dispositivo" style="display:none;background:none;border:1px solid rgba(244,185,66,.3);border-radius:4px;color:#B08020;font-family:'Orbitron',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;padding:3px 7px;cursor:pointer;white-space:nowrap;transition:all .15s" onmouseover="this.style.borderColor='rgba(244,185,66,.7)';this.style.color='#D4A030'" onmouseout="this.style.borderColor='rgba(244,185,66,.3)';this.style.color='#B08020'">US$ 0.00</button>
-        <div class="header-divider" id="costDivider" style="display:none"></div>
         <div id="userBadge" style="display:none;align-items:center;gap:7px;padding:0 4px">
             <div id="userBadgeDot" style="width:7px;height:7px;border-radius:50%;background:#007A5A;flex-shrink:0"></div>
             <span id="userBadgeName" style="font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#1A3050;text-transform:uppercase;white-space:nowrap"></span>
@@ -3787,21 +3784,72 @@
 </div>
 
 <!-- ── PAINEL DE NOTIFICAÇÕES ── -->
-<div id="notifPanel" style="display:none;position:fixed;top:52px;right:12px;z-index:8000;width:320px;background:#fff;border:1px solid #DDE5F0;border-radius:8px;box-shadow:0 8px 32px rgba(10,20,60,.18);overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1px solid #EEF2F7">
-        <span style="font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:#1A3050;text-transform:uppercase">Notificações</span>
-        <button onclick="marcarTodasLidas()" style="background:none;border:none;font-size:9px;color:#5A7A9A;cursor:pointer;text-decoration:underline">Marcar todas como lidas</button>
+<div id="configPanel" style="display:none;position:fixed;top:52px;right:12px;z-index:8000;width:310px;max-height:calc(100vh - 70px);overflow-y:auto;background:#fff;border:1px solid #DDE5F0;border-radius:10px;box-shadow:0 8px 32px rgba(10,20,60,.18)">
+    <!-- Header do painel -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px 9px;border-bottom:1px solid #EEF2F7;position:sticky;top:0;background:#fff;z-index:1">
+        <span style="font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:#1A3050;text-transform:uppercase">Configurações</span>
+        <button onclick="closeConfigPanel()" style="background:none;border:none;font-size:15px;color:#8A9AB8;cursor:pointer;line-height:1;padding:0 2px">✕</button>
     </div>
-    <div id="notifList" style="max-height:280px;overflow-y:auto"></div>
-    <div style="padding:8px 14px;border-top:1px solid #EEF2F7;display:flex;gap:6px;justify-content:flex-end">
-        <button onclick="alertarWhatsApp()" title="Compartilhar pendências por WhatsApp" style="background:none;border:1px solid #25D36622;color:#128C7E;padding:4px 9px;border-radius:4px;font-size:10px;cursor:pointer;display:flex;align-items:center;gap:4px">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            WhatsApp
-        </button>
-        <button onclick="alertarEmail()" title="Enviar pendências por e-mail" style="background:none;border:1px solid #4A9FD422;color:#2A6FA8;padding:4px 9px;border-radius:4px;font-size:10px;cursor:pointer;display:flex;align-items:center;gap:4px">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 9L2 4"/></svg>
-            E-mail
-        </button>
+
+    <!-- Seção: Notificações -->
+    <div style="border-bottom:1px solid #EEF2F7">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px 7px">
+            <span style="font-family:'Orbitron',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:#3A5070;text-transform:uppercase">Notificações</span>
+            <button onclick="marcarTodasLidas()" style="background:none;border:none;font-size:9px;color:#5A7A9A;cursor:pointer;text-decoration:underline">Marcar lidas</button>
+        </div>
+        <div id="notifList" style="max-height:220px;overflow-y:auto"></div>
+        <div style="padding:7px 14px 9px;display:flex;gap:6px;justify-content:flex-end">
+            <button onclick="alertarWhatsApp()" style="background:none;border:1px solid #25D36622;color:#128C7E;padding:4px 9px;border-radius:4px;font-size:9.5px;cursor:pointer;display:flex;align-items:center;gap:4px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                WhatsApp
+            </button>
+            <button onclick="alertarEmail()" style="background:none;border:1px solid #4A9FD422;color:#2A6FA8;padding:4px 9px;border-radius:4px;font-size:9.5px;cursor:pointer;display:flex;align-items:center;gap:4px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 9L2 4"/></svg>
+                E-mail
+            </button>
+        </div>
+    </div>
+
+    <!-- Seção: Consumo da API -->
+    <div style="border-bottom:1px solid #EEF2F7;padding:9px 14px 12px">
+        <div style="font-family:'Orbitron',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:#3A5070;text-transform:uppercase;margin-bottom:10px">Consumo da API</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
+            <div style="background:#F8FAFC;border-radius:7px;padding:8px 10px;border:1px solid #EEF2F7">
+                <div style="font-size:8.5px;color:#5A7A9A;margin-bottom:3px">Custo estimado</div>
+                <div id="cfgCost" style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#007A5A">US$ 0.00</div>
+            </div>
+            <div style="background:#F8FAFC;border-radius:7px;padding:8px 10px;border:1px solid #EEF2F7">
+                <div style="font-size:8.5px;color:#5A7A9A;margin-bottom:3px">Requisições</div>
+                <div id="cfgReqs" style="font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#1A3050">0</div>
+            </div>
+        </div>
+        <div style="font-size:9.5px;color:#8A9AB8;margin-bottom:10px">
+            Entrada: <span id="cfgIn">0</span> tokens &nbsp;·&nbsp; Saída: <span id="cfgOut">0</span> tokens
+        </div>
+        <div style="background:#FFF8E1;border-radius:6px;padding:8px 10px;margin-bottom:9px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:#7A5A00;cursor:pointer;flex-wrap:wrap;gap:5px">
+                <input type="checkbox" id="cfgAlertOn" onchange="saveCostSettings()">
+                <span>Alertar ao atingir</span>
+                <input type="number" id="cfgAlertVal" value="1.00" min="0.01" step="0.01" style="width:58px;border:1px solid #D4C080;border-radius:4px;padding:3px 5px;font-size:11px;font-family:'Orbitron',monospace" oninput="saveCostSettings()">
+                <span>US$</span>
+            </label>
+        </div>
+        <button onclick="resetCost()" style="background:#F0F4F8;border:1px solid #DDE5F0;border-radius:5px;color:#4A6080;font-size:10px;cursor:pointer;padding:5px 12px;font-family:'Inter',sans-serif">Zerar contagem</button>
+    </div>
+
+    <!-- Seção: Chave de API -->
+    <div style="padding:9px 14px 14px">
+        <div style="font-family:'Orbitron',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:#3A5070;text-transform:uppercase;margin-bottom:8px">Chave de API — Anthropic</div>
+        <div style="font-size:10px;color:#5A7A9A;line-height:1.55;margin-bottom:8px">
+            Configure sua chave para habilitar as funções de IA. Salva apenas neste navegador.<br>
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style="color:#007A5A;font-weight:600;text-decoration:none;font-size:9.5px">console.anthropic.com ↗</a>
+        </div>
+        <div id="cfgApiStatus" style="font-size:9.5px;margin-bottom:8px;padding:5px 8px;background:#F0F4FA;border-radius:4px;border-left:2px solid #007A5A;color:#3A6050;display:none"></div>
+        <input type="password" id="cfgApiInput" placeholder="sk-ant-..." style="width:100%;border:1px solid #C8D8EC;border-radius:5px;padding:7px 10px;font-size:11px;color:#1A2E4A;background:#F8FAFC;outline:none;font-family:'Inter',sans-serif;box-sizing:border-box;margin-bottom:8px">
+        <div style="display:flex;gap:7px">
+            <button onclick="cfgSaveApiKey()" style="background:#007A5A;color:#fff;border:none;border-radius:5px;padding:7px 16px;font-size:10px;font-weight:600;cursor:pointer;font-family:'Orbitron',monospace;letter-spacing:.08em">Salvar →</button>
+            <button onclick="cfgClearApiKey()" id="cfgApiClrBtn" style="display:none;background:none;border:1px solid #DDE5F0;border-radius:5px;color:#5A7A9A;padding:7px 12px;font-size:10px;cursor:pointer;font-family:'Inter',sans-serif">Remover</button>
+        </div>
     </div>
 </div>
 
@@ -7972,7 +8020,7 @@ Responda SOMENTE com um array JSON, sem texto antes ou depois, sem markdown, exa
 
     function updateNotifBadge() {
         const unread = notifList.filter(n => !n.lida).length;
-        const badge  = document.getElementById('notifBadge');
+        const badge  = document.getElementById('configBadge');
         if (!badge) return;
         if (unread > 0) {
             badge.style.display = 'block';
@@ -7996,25 +8044,31 @@ Responda SOMENTE com um array JSON, sem texto antes ou depois, sem markdown, exa
             </div>`).join('');
     }
 
-    function toggleNotifPanel() {
-        const panel = document.getElementById('notifPanel');
+    let configPanelOpen = false;
+
+    function toggleConfigPanel() {
+        const panel = document.getElementById('configPanel');
         if (!panel) return;
-        notifPanelOpen = !notifPanelOpen;
-        panel.style.display = notifPanelOpen ? 'block' : 'none';
-        if (notifPanelOpen) renderNotifPanel();
+        configPanelOpen = !configPanelOpen;
+        panel.style.display = configPanelOpen ? 'block' : 'none';
+        if (configPanelOpen) { renderNotifPanel(); updateCfgCost(); updateCfgApiStatus(); }
     }
 
-    function closeNotifPanel() {
-        notifPanelOpen = false;
-        const panel = document.getElementById('notifPanel');
+    function closeConfigPanel() {
+        configPanelOpen = false;
+        const panel = document.getElementById('configPanel');
         if (panel) panel.style.display = 'none';
     }
 
+    // manter compatibilidade com código que chama toggleNotifPanel
+    function toggleNotifPanel() { toggleConfigPanel(); }
+    function closeNotifPanel()   { closeConfigPanel(); }
+
     document.addEventListener('click', e => {
-        const btn = document.getElementById('notifBtn');
-        const panel = document.getElementById('notifPanel');
-        if (panel && notifPanelOpen && btn && !btn.contains(e.target) && !panel.contains(e.target)) {
-            closeNotifPanel();
+        const btn   = document.getElementById('configBtn');
+        const panel = document.getElementById('configPanel');
+        if (panel && configPanelOpen && btn && !btn.contains(e.target) && !panel.contains(e.target)) {
+            closeConfigPanel();
         }
     });
 
@@ -8051,6 +8105,57 @@ Responda SOMENTE com um array JSON, sem texto antes ou depois, sem markdown, exa
         const texto   = _buildNotifSummary();
         const assunto = 'Notificações pendentes — Urbano SEDEC Vitória';
         window.open(`mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(texto)}`, '_self');
+    }
+
+    /* ── Config panel: custo inline ── */
+    function updateCfgCost() {
+        try {
+            const d   = JSON.parse(localStorage.getItem('urbano_cost_v1') || '{}');
+            const inp = d.inp || 0, out = d.out || 0, reqs = d.reqs || 0;
+            const usd = inp * 3/1e6 + out * 15/1e6;
+            const el  = id => document.getElementById(id);
+            if (el('cfgCost'))  el('cfgCost').textContent  = 'US$ ' + usd.toFixed(2);
+            if (el('cfgReqs'))  el('cfgReqs').textContent  = reqs.toLocaleString('pt-BR');
+            if (el('cfgIn'))    el('cfgIn').textContent    = inp.toLocaleString('pt-BR');
+            if (el('cfgOut'))   el('cfgOut').textContent   = out.toLocaleString('pt-BR');
+            const s = JSON.parse(localStorage.getItem('urbano_cost_settings') || '{}');
+            if (el('cfgAlertOn'))  el('cfgAlertOn').checked  = !!s.alertOn;
+            if (el('cfgAlertVal')) el('cfgAlertVal').value   = s.alertVal || 1;
+        } catch(e) {}
+    }
+
+    /* ── Config panel: chave de API inline ── */
+    function updateCfgApiStatus() {
+        const k    = localStorage.getItem('claudeApiKey') || '';
+        const stat = document.getElementById('cfgApiStatus');
+        const clr  = document.getElementById('cfgApiClrBtn');
+        const inp  = document.getElementById('cfgApiInput');
+        if (!stat) return;
+        if (k) {
+            stat.style.display  = 'block';
+            stat.textContent    = 'Chave configurada: ' + k.substring(0, 16) + '...';
+            if (clr) clr.style.display = 'inline-block';
+            if (inp) inp.value = '';
+        } else {
+            stat.style.display  = 'none';
+            if (clr) clr.style.display = 'none';
+        }
+    }
+
+    function cfgSaveApiKey() {
+        const inp = document.getElementById('cfgApiInput');
+        const k   = inp ? inp.value.trim() : '';
+        if (!k) { cfgClearApiKey(); return; }
+        if (!k.startsWith('sk-ant-')) { pushNotif('API KEY', 'Chave inválida. Deve começar com sk-ant-', '#E05C5C'); return; }
+        localStorage.setItem('claudeApiKey', k);
+        pushNotif('CONFIGURAÇÃO', 'Chave salva com sucesso.', '#00A87A');
+        updateCfgApiStatus();
+    }
+
+    function cfgClearApiKey() {
+        localStorage.removeItem('claudeApiKey');
+        pushNotif('CONFIGURAÇÃO', 'Chave removida.', '#4A9FD4');
+        updateCfgApiStatus();
     }
 
     async function loadNotificacoes() {
@@ -9642,25 +9747,6 @@ ${FORMAT_INST}`;
 </div>
 
 <!-- COST DETAIL MODAL -->
-<div id="costModal" onclick="if(event.target===this)closeCostDetail()">
-    <div id="costBox">
-        <div class="cost-title">Consumo API — Anthropic</div>
-        <div class="cost-row"><span>Tokens de entrada</span><span class="cost-val" id="cdIn">0</span></div>
-        <div class="cost-row"><span>Tokens de saída</span><span class="cost-val" id="cdOut">0</span></div>
-        <div class="cost-row"><span>Requisições</span><span class="cost-val" id="cdReqs">0</span></div>
-        <div class="cost-row"><span>Custo estimado</span><span class="cost-val" id="cdTotal" style="color:#007A5A">US$ 0.00</span></div>
-        <div class="cost-alert-row">
-            <label>
-                <input type="checkbox" id="cdAlertOn" onchange="saveCostSettings()"> Alertar quando custo atingir
-                <input class="cost-inp" id="cdAlertVal" type="number" min="0.01" step="0.01" value="1.00" placeholder="1.00" oninput="saveCostSettings()"> US$
-            </label>
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin-top:4px">
-            <button class="cost-reset-btn" onclick="resetCost()">Zerar</button>
-            <button class="cost-close-btn" onclick="closeCostDetail()">Fechar</button>
-        </div>
-    </div>
-</div>
 
 <script>
 /* ══════════════════════════════════════════
@@ -9681,14 +9767,9 @@ ${FORMAT_INST}`;
     }
 
     function updatePill(d) {
-        const pill = document.getElementById('costPill');
-        const div  = document.getElementById('costDivider');
-        if (!pill) return;
         const usd = calcUSD(d);
-        pill.textContent = 'US$ ' + usd.toFixed(2);
-        pill.style.display = 'block';
-        if (div) div.style.display = 'block';
-
+        // atualiza painel Config se estiver aberto
+        try { if (typeof updateCfgCost === 'function') updateCfgCost(); } catch(e) {}
         // alertas
         try {
             const settings = JSON.parse(localStorage.getItem('urbano_cost_settings') || '{}');
@@ -9713,29 +9794,10 @@ ${FORMAT_INST}`;
         updatePill(d);
     };
 
-    window.openCostDetail = function() {
-        const d = loadCost();
-        const usd = calcUSD(d);
-        document.getElementById('cdIn').textContent    = d.inp.toLocaleString('pt-BR');
-        document.getElementById('cdOut').textContent   = d.out.toLocaleString('pt-BR');
-        document.getElementById('cdReqs').textContent  = d.reqs.toLocaleString('pt-BR');
-        document.getElementById('cdTotal').textContent = 'US$ ' + usd.toFixed(4);
-        try {
-            const s = JSON.parse(localStorage.getItem('urbano_cost_settings') || '{}');
-            document.getElementById('cdAlertOn').checked  = !!s.alertOn;
-            document.getElementById('cdAlertVal').value   = s.alertVal || 1;
-        } catch(e) {}
-        document.getElementById('costModal').classList.add('open');
-    };
-
-    window.closeCostDetail = function() {
-        document.getElementById('costModal').classList.remove('open');
-    };
-
     window.saveCostSettings = function() {
         const s = {
-            alertOn:  document.getElementById('cdAlertOn').checked,
-            alertVal: parseFloat(document.getElementById('cdAlertVal').value) || 1,
+            alertOn:  document.getElementById('cfgAlertOn')?.checked || false,
+            alertVal: parseFloat(document.getElementById('cfgAlertVal')?.value) || 1,
         };
         try { localStorage.setItem('urbano_cost_settings', JSON.stringify(s)); } catch(e) {}
     };
@@ -9744,15 +9806,8 @@ ${FORMAT_INST}`;
         localStorage.removeItem(KEY);
         localStorage.removeItem('urbano_cost_alerted');
         updatePill({ inp: 0, out: 0, reqs: 0 });
-        document.getElementById('cdIn').textContent = '0';
-        document.getElementById('cdOut').textContent = '0';
-        document.getElementById('cdReqs').textContent = '0';
-        document.getElementById('cdTotal').textContent = 'US$ 0.0000';
+        if (typeof updateCfgCost === 'function') updateCfgCost();
     };
-
-    // inicia pill ao carregar
-    window.addEventListener('DOMContentLoaded', () => updatePill(loadCost()));
-    setTimeout(() => updatePill(loadCost()), 1500);
 })();
 
 /* ══════════════════════════════════════════
@@ -9773,7 +9828,7 @@ ${FORMAT_INST}`;
         { titulo: 'Diário Oficial', desc: 'Pesquise publicações no DOM Vitória, DOE Espírito Santo, LexML e DOU. Cole o texto de uma publicação e a IA analisa o impacto para a SEDEC com ações recomendadas.', target: () => findBtn('D.O.') },
         { titulo: 'Bloco de Notas', desc: 'Notas sincronizadas com o servidor. Capture ideias e decisões. A IA classifica a nota nos eixos estratégicos e permite enviar diretamente para o Kanban de um eixo.', target: () => document.getElementById('noteBackBtn') },
         { titulo: 'Chave de API — Configuração', desc: 'Para usar as funções de IA, clique em "API" no cabeçalho e configure sua chave Anthropic. A chave fica salva apenas neste dispositivo.', target: () => document.querySelector('.hdr-btn[onclick*="openApiKey"]') },
-        { titulo: 'US$ — Monitor de Consumo', desc: 'Este indicador mostra o custo estimado das requisições de IA feitas neste dispositivo. Clique nele para ver detalhes e configurar alertas de limite de gasto.', target: () => document.getElementById('costPill') },
+        { titulo: 'Config — Consumo e Chave de API', desc: 'O botão Config no cabeçalho centraliza: notificações, consumo estimado da API (com alerta de limite) e configuração da chave Anthropic — tudo em um único painel.', target: () => document.getElementById('configBtn') },
         { titulo: 'Pronto! Bem-vindo ao Urbano.', desc: 'Você conheceu todas as funções principais. Para repetir este tour, limpe o cache do navegador ou peça ao administrador. Em caso de dúvidas, use o Chat IA dentro de qualquer eixo estratégico.', target: null },
     ];
 

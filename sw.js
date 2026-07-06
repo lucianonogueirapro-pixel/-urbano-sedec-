@@ -1,4 +1,4 @@
-const CACHE = 'hub-vitoria-v6';
+const CACHE = 'hub-vitoria-v7';
 const ASSETS = [
   './hub.html',
   './icon-192.png',

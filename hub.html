@@ -4033,24 +4033,23 @@
             btn.textContent = 'Entrar →'; btn.disabled = false; return;
         }
         try {
-            let row = null;
-            // Tenta login com senha hasheada (após migração)
-            try {
+            const { data, error } = await db.from('acessos')
+                .select('id, nome, papel, senha_hash, senha')
+                .eq('nome', nome)
+                .limit(1);
+            if (error) throw error;
+            const user = data?.[0];
+            if (user) {
                 const senhaHash = await hashSenha(senha);
-                const { data: dHash, error: eHash } = await db.from('acessos').select('id, nome, papel').eq('nome', nome).eq('senha_hash', senhaHash).limit(1);
-                if (!eHash && dHash?.[0]) row = dHash[0];
-            } catch(_) {}
-            // Fallback: senha em texto puro (antes da migração)
-            if (!row) {
-                const { data: dPlain, error: ePlain } = await db.from('acessos').select('id, nome, papel').eq('nome', nome).eq('senha', senha).limit(1);
-                if (!ePlain && dPlain?.[0]) row = dPlain[0];
+                const ok = (user.senha_hash && user.senha_hash === senhaHash) || (!user.senha_hash && user.senha === senha);
+                if (ok) {
+                    localStorage.setItem('hubSession', JSON.stringify({ id: user.id, nome: user.nome, papel: user.papel }));
+                    location.reload();
+                    return;
+                }
             }
-            if (!row) {
-                errEl.textContent = 'Nome ou senha incorretos.'; errEl.style.display='block';
-                btn.textContent = 'Entrar →'; btn.disabled = false; return;
-            }
-            localStorage.setItem('hubSession', JSON.stringify({ id: row.id, nome: row.nome, papel: row.papel }));
-            location.reload();
+            errEl.textContent = 'Nome ou senha incorretos.'; errEl.style.display='block';
+            btn.textContent = 'Entrar →'; btn.disabled = false;
         } catch(e) {
             errEl.textContent = 'Erro: ' + (e?.message || 'verifique sua internet.'); errEl.style.display='block';
             btn.textContent = 'Entrar →'; btn.disabled = false;

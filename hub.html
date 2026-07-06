@@ -9674,8 +9674,8 @@ ${FORMAT_INST}`;
 /* ── TOUR ── */
 #tourOverlay{position:fixed;inset:0;z-index:99980;pointer-events:none;opacity:0;transition:opacity .3s}
 #tourOverlay.active{pointer-events:all;opacity:1}
-#tourDark{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:99981;pointer-events:all;transition:background .35s}
-#tourOverlay.active #tourDark{background:rgba(0,0,0,.76)}
+#tourDark{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:99981;pointer-events:none;transition:background .35s}
+#tourOverlay.active #tourDark{background:rgba(0,0,0,.76);pointer-events:all}
 #tourSpot{position:fixed;z-index:99982;pointer-events:none;border-radius:8px;transition:all .35s cubic-bezier(.4,0,.2,1);outline:2.5px solid #00A87A;outline-offset:5px;background:transparent}
 #tourPanel{position:fixed;z-index:99986;background:linear-gradient(135deg,#0A1A2A,#0D2035);border:1px solid rgba(0,168,122,.4);border-radius:14px;padding:22px 24px 18px;width:300px;box-shadow:0 20px 56px rgba(0,0,0,.75);transition:all .3s cubic-bezier(.4,0,.2,1)}
 #tourStep{font-family:'Orbitron',monospace;font-size:8.5px;font-weight:700;letter-spacing:.18em;color:#00A87A;text-transform:uppercase;margin-bottom:10px}
